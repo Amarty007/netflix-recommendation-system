@@ -1,24 +1,52 @@
+from pathlib import Path
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-df = pd.read_csv("data/processed/netflix_features.csv")
 
-# Movies vs TV Shows
-df['type'].value_counts().plot(kind='bar')
-plt.title("Movies vs TV Shows")
-plt.show()
+PROJECT_ROOT = Path(__file__).resolve().parent
+DATA_FILE = PROJECT_ROOT / "data" / "processed" / "netflix_features.csv"
+FALLBACK_DATA = PROJECT_ROOT / "netflix_features.csv"
 
-# Release year trend
-df['release_year'].value_counts().sort_index().plot(kind='line')
-plt.title("Release Trend")
-plt.show()
 
-# Correlation heatmap
-plt.figure(figsize=(8,6))
-sns.heatmap(
-    df[['release_year','added_year','genre_count','cast_count','duration_minutes']].corr(),
-    annot=True
-)
-plt.title("Correlation Heatmap")
-plt.show()
+def prepare_visualization_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Return numeric visualization columns and parsed dates.
+
+    Time: O(n * c), where n is rows and c is selected columns.
+    Space: O(n * c) for the visualization DataFrame subset.
+    """
+    columns = ["type", "release_year", "date_added", "added_year", "genre_count", "cast_count", "duration_minutes"]
+    result = df.copy()[columns]
+    result["date_added"] = pd.to_datetime(result["date_added"], errors="coerce")
+    return result
+
+
+def create_visualizations(df: pd.DataFrame) -> None:
+    """Create the three project plots.
+
+    Time: O(n log n + n * c^2) including grouping and correlation work.
+    Space: O(n * c) for plot and correlation data.
+    """
+    df["type"].value_counts().plot(kind="bar")
+    plt.title("Movies vs TV Shows")
+    plt.show()
+
+    df["release_year"].value_counts().sort_index().plot(kind="line")
+    plt.title("Release Trend")
+    plt.show()
+
+    plt.figure(figsize=(8, 6))
+    columns = ["release_year", "added_year", "genre_count", "cast_count", "duration_minutes"]
+    sns.heatmap(df[columns].corr(), annot=True)
+    plt.title("Correlation Heatmap")
+    plt.show()
+
+
+def main() -> None:
+    source = DATA_FILE if DATA_FILE.is_file() else FALLBACK_DATA
+    create_visualizations(prepare_visualization_data(pd.read_csv(source)))
+
+
+if __name__ == "__main__":
+    main()

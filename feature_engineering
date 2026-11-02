@@ -1,24 +1,41 @@
+from pathlib import Path
+
 import pandas as pd
 
-df = pd.read_csv("data/processed/cleaned_netflix.csv")
 
-# Convert date
-df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
-df['added_year'] = df['date_added'].dt.year
+PROJECT_ROOT = Path(__file__).resolve().parent
+INPUT_DATA = PROJECT_ROOT / "data" / "processed" / "cleaned_netflix.csv"
+OUTPUT_DATA = PROJECT_ROOT / "data" / "processed" / "netflix_features.csv"
 
-# Duration cleaning
-def clean_duration(val):
-    if isinstance(val, str) and 'min' in val:
-        return int(val.replace(' min', ''))
+
+def clean_duration(value):
+    """Extract minutes from a duration string."""
+    if isinstance(value, str) and "min" in value:
+        return int(value.replace(" min", ""))
     return None
 
-df['duration_minutes'] = df['duration'].apply(clean_duration)
 
-# Genre & cast counts
-df['genre_count'] = df['listed_in'].apply(lambda x: len(str(x).split(',')))
-df['cast_count'] = df['cast'].apply(lambda x: len(str(x).split(',')))
+def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Create derived features without mutating the input.
 
-# Save features
-df.to_csv("data/processed/netflix_features.csv", index=False)
+    Time: O(n * c + n * s), where n rows, c columns, and s is duration-string length.
+    Space: O(n * c) for the returned DataFrame and its derived columns.
+    """
+    result = df.copy()
+    result["date_added"] = pd.to_datetime(result["date_added"], errors="coerce")
+    result["added_year"] = result["date_added"].dt.year
+    result["duration_minutes"] = result["duration"].apply(clean_duration)
+    result["genre_count"] = result["listed_in"].apply(lambda value: len(str(value).split(',')))
+    result["cast_count"] = result["cast"].apply(lambda value: len(str(value).split(',')))
+    return result
 
-print("Feature engineering completed")
+
+def main() -> None:
+    df = pd.read_csv(INPUT_DATA)
+    OUTPUT_DATA.parent.mkdir(parents=True, exist_ok=True)
+    engineer_features(df).to_csv(OUTPUT_DATA, index=False)
+    print("Feature engineering completed")
+
+
+if __name__ == "__main__":
+    main()

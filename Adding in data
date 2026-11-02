@@ -1,7 +1,27 @@
+from pathlib import Path
+
 import pandas as pd
 
-df = pd.read_csv("data/processed/cleaned_netflix.csv")
 
-print("Dataset shape:", df.shape)
-print("\nMovies vs TV Shows:")
-print(df['type'].value_counts())
+PROJECT_ROOT = Path(__file__).resolve().parent
+DATA_FILE = PROJECT_ROOT / "data" / "processed" / "cleaned_netflix.csv"
+
+
+def summarize_data(df: pd.DataFrame) -> tuple[tuple[int, int], pd.Series]:
+    """Return dataset shape and type counts.
+
+    Time: O(n), where n is the row count.
+    Space: O(t), where t is the number of distinct type values.
+    """
+    return df.shape, df["type"].value_counts()
+
+
+def main() -> None:
+    shape, type_counts = summarize_data(pd.read_csv(DATA_FILE))
+    print("Dataset shape:", shape)
+    print("\nMovies vs TV Shows:")
+    print(type_counts)
+
+
+if __name__ == "__main__":
+    main()
